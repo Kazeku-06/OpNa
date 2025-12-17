@@ -25,6 +25,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late TextEditingController _contentController;
   EditorMode _currentMode = EditorMode.edit;
   bool _hasUnsavedChanges = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -46,6 +47,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   void _onTitleChanged() {
     setState(() {
       _hasUnsavedChanges = true;
+    });
+    
+    // Auto-save title changes after a delay
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && _hasUnsavedChanges) {
+        _saveNote();
+      }
     });
   }
 
@@ -71,19 +79,25 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           orElse: () => throw Exception('Note not found'),
         );
 
-        // Initialize controllers with note data
-        if (_titleController.text != note.title) {
-          _titleController.text = note.title;
-        }
-
         return contentAsync.when(
           data: (content) {
-            if (_contentController.text != content) {
+            // Initialize controllers only once
+            if (!_isInitialized) {
+              _titleController.text = note.title;
               _contentController.text = content;
+              _isInitialized = true;
             }
 
-            return WillPopScope(
-              onWillPop: _onWillPop,
+            return PopScope(
+              canPop: !_hasUnsavedChanges,
+              onPopInvoked: (didPop) async {
+                if (!didPop && _hasUnsavedChanges) {
+                  final shouldPop = await _showUnsavedChangesDialog();
+                  if (shouldPop && mounted) {
+                    Navigator.of(context).pop();
+                  }
+                }
+              },
               child: Scaffold(
                 appBar: AppBar(
                   title: const Text('Edit Note'),
@@ -133,7 +147,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 bottomNavigationBar: _hasUnsavedChanges
                     ? Container(
                         padding: const EdgeInsets.all(8),
-                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         child: Row(
                           children: [
                             const Icon(Icons.info_outline, size: 16),
@@ -309,9 +323,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  Future<bool> _onWillPop() async {
-    if (!_hasUnsavedChanges) return true;
-
+  Future<bool> _showUnsavedChangesDialog() async {
     final shouldPop = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -326,7 +338,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onPressed: () async {
               Navigator.of(context).pop(false);
               await _saveNote();
-              if (mounted) Navigator.of(context).pop();
             },
             child: const Text('Save'),
           ),
