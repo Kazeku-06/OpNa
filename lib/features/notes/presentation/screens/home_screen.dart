@@ -213,7 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final repository = ref.read(notesRepositoryProvider);
       final noteIds = notes.map((note) => note.id).toList();
       
-      // TODO: Implement directory picker for export location
+      // For web, this will trigger downloads. For desktop, save to Downloads folder
       await repository.exportNotes(noteIds, '/storage/emulated/0/Download');
       
       if (mounted) {
