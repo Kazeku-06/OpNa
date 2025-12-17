@@ -45,6 +45,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   void _onTitleChanged() {
+    print('Title changed to: ${_titleController.text}'); // Debug log
     setState(() {
       _hasUnsavedChanges = true;
     });
@@ -52,6 +53,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // Auto-save title changes after a delay
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted && _hasUnsavedChanges) {
+        print('Auto-saving after title change'); // Debug log
         _saveNote();
       }
     });
@@ -86,6 +88,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               _titleController.text = note.title;
               _contentController.text = content;
               _isInitialized = true;
+              print('Initialized with title: ${note.title}'); // Debug log
             }
 
             return PopScope(
@@ -268,12 +271,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       final notes = notesAsync.value ?? [];
       final note = notes.firstWhere((n) => n.id == widget.noteId);
 
+      final newTitle = _titleController.text.trim().isEmpty 
+          ? 'Untitled Note' 
+          : _titleController.text.trim();
+
+      print('Saving note with title: $newTitle'); // Debug log
+
       final updatedNote = note.copyWith(
-        title: _titleController.text.trim().isEmpty 
-            ? 'Untitled Note' 
-            : _titleController.text.trim(),
+        title: newTitle,
         updatedAt: DateTime.now(),
       );
+
+      print('Updated note: ${updatedNote.title}'); // Debug log
 
       await ref.read(notesProvider.notifier).updateNote(updatedNote);
       await ref.read(noteContentProvider(widget.noteId).notifier).saveManually();
@@ -284,10 +293,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Note saved')),
+          SnackBar(content: Text('Note saved: $newTitle')),
         );
       }
     } catch (error) {
+      print('Error saving note: $error'); // Debug log
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save note: $error')),

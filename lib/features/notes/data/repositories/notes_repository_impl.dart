@@ -45,9 +45,12 @@ class NotesRepositoryImpl implements NotesRepository {
   @override
   Future<void> saveNote(Note note) async {
     try {
+      print('Repository: Saving note ${note.id} with title: ${note.title}'); // Debug log
       final box = await notesBox;
       await box.put(note.id, note);
+      print('Repository: Note saved successfully'); // Debug log
     } catch (e) {
+      print('Repository: Error saving note: $e'); // Debug log
       throw Exception('Failed to save note: $e');
     }
   }

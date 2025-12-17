@@ -128,10 +128,13 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
 
   Future<void> updateNote(Note note) async {
     try {
+      print('Provider: Updating note ${note.id} with title: ${note.title}'); // Debug log
       final updatedNote = note.copyWith(updatedAt: DateTime.now());
       await _repository.saveNote(updatedNote);
       await loadNotes();
+      print('Provider: Note updated and notes reloaded'); // Debug log
     } catch (error) {
+      print('Provider: Error updating note: $error'); // Debug log
       throw Exception('Failed to update note: $error');
     }
   }
