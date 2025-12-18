@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/notes_provider.dart';
-import '../widgets/notes_list.dart';
+import '../widgets/enhanced_notes_list.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/sort_options.dart';
+import '../../templates/presentation/screens/template_selection_screen.dart';
 import 'note_editor_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -87,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final notesNotifier = ref.read(notesProvider.notifier);
       final note = await notesNotifier.createNote();
-      
+
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -169,7 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final repository = ref.read(notesRepositoryProvider);
       final backupName = 'backup_${DateTime.now().millisecondsSinceEpoch}';
       await repository.createBackup(backupName);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Backup created successfully')),
@@ -202,20 +203,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final notesAsync = ref.read(notesProvider);
       final notes = notesAsync.value ?? [];
-      
+
       if (notes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No notes to export')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No notes to export')));
         return;
       }
 
       final repository = ref.read(notesRepositoryProvider);
       final noteIds = notes.map((note) => note.id).toList();
-      
+
       // For web, this will trigger downloads. For desktop, save to Downloads folder
       await repository.exportNotes(noteIds, '/storage/emulated/0/Download');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Notes exported successfully')),

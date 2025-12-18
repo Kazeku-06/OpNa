@@ -28,6 +28,15 @@ class Note extends HiveObject {
   @HiveField(7)
   int nextVersionNumber;
 
+  @HiveField(8)
+  bool isArchived;
+
+  @HiveField(9)
+  bool isDeleted;
+
+  @HiveField(10)
+  int sortOrder;
+
   Note({
     required this.id,
     required this.title,
@@ -37,6 +46,9 @@ class Note extends HiveObject {
     this.folder,
     this.currentVersion = 1,
     this.nextVersionNumber = 2,
+    this.isArchived = false,
+    this.isDeleted = false,
+    this.sortOrder = 0,
   });
 
   Note copyWith({
@@ -46,6 +58,9 @@ class Note extends HiveObject {
     String? folder,
     int? currentVersion,
     int? nextVersionNumber,
+    bool? isArchived,
+    bool? isDeleted,
+    int? sortOrder,
   }) {
     return Note(
       id: id,
@@ -56,6 +71,9 @@ class Note extends HiveObject {
       folder: folder ?? this.folder,
       currentVersion: currentVersion ?? this.currentVersion,
       nextVersionNumber: nextVersionNumber ?? this.nextVersionNumber,
+      isArchived: isArchived ?? this.isArchived,
+      isDeleted: isDeleted ?? this.isDeleted,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
