@@ -8,16 +8,17 @@ import 'features/notes/presentation/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Hive
   await Hive.initFlutter();
-  
+
   // Register Hive adapters
   Hive.registerAdapter(NoteAdapter());
-  
+  // Note: NoteTemplateAdapter will be registered when templates feature is used
+
   // Initialize file manager
   await FileManager.instance.initialize();
-  
+
   runApp(const ProviderScope(child: NotesApp()));
 }
 

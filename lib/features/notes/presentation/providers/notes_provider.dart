@@ -13,17 +13,23 @@ final notesRepositoryProvider = Provider<NotesRepository>((ref) {
 });
 
 // Notes list provider
-final notesProvider = StateNotifierProvider<NotesNotifier, AsyncValue<List<Note>>>((ref) {
-  return NotesNotifier(ref.read(notesRepositoryProvider));
-});
+final notesProvider =
+    StateNotifierProvider<NotesNotifier, AsyncValue<List<Note>>>((ref) {
+      return NotesNotifier(ref.read(notesRepositoryProvider));
+    });
 
 // Current note provider
 final currentNoteProvider = StateProvider<Note?>((ref) => null);
 
 // Note content provider
-final noteContentProvider = StateNotifierProvider.family<NoteContentNotifier, AsyncValue<String>, String>((ref, noteId) {
-  return NoteContentNotifier(ref.read(notesRepositoryProvider), noteId);
-});
+final noteContentProvider =
+    StateNotifierProvider.family<
+      NoteContentNotifier,
+      AsyncValue<String>,
+      String
+    >((ref, noteId) {
+      return NoteContentNotifier(ref.read(notesRepositoryProvider), noteId);
+    });
 
 // Search provider
 final searchQueryProvider = StateProvider<String>((ref) => '');
@@ -38,7 +44,7 @@ final searchResultsProvider = FutureProvider<List<Note>>((ref) async {
       error: (_, __) => <Note>[],
     );
   }
-  
+
   final repository = ref.read(notesRepositoryProvider);
   return await repository.searchNotes(query);
 });
@@ -46,16 +52,18 @@ final searchResultsProvider = FutureProvider<List<Note>>((ref) async {
 // Sort options
 enum SortOption { dateCreated, dateUpdated, title, pinned }
 
-final sortOptionProvider = StateProvider<SortOption>((ref) => SortOption.dateUpdated);
+final sortOptionProvider = StateProvider<SortOption>(
+  (ref) => SortOption.dateUpdated,
+);
 
 final sortedNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   final notesAsync = ref.watch(notesProvider);
   final sortOption = ref.watch(sortOptionProvider);
-  
+
   return notesAsync.when(
     data: (notes) {
       final sortedNotes = List<Note>.from(notes);
-      
+
       switch (sortOption) {
         case SortOption.dateCreated:
           sortedNotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -74,7 +82,7 @@ final sortedNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
           });
           break;
       }
-      
+
       return AsyncValue.data(sortedNotes);
     },
     loading: () => const AsyncValue.loading(),
@@ -83,7 +91,10 @@ final sortedNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
 });
 
 // Version history provider
-final noteVersionsProvider = FutureProvider.family<List<NoteVersion>, String>((ref, noteId) async {
+final noteVersionsProvider = FutureProvider.family<List<NoteVersion>, String>((
+  ref,
+  noteId,
+) async {
   final repository = ref.read(notesRepositoryProvider);
   return await repository.getNoteVersions(noteId);
 });
@@ -118,7 +129,7 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
 
       await _repository.saveNote(note);
       await _repository.saveNoteContent(note.id, '');
-      
+
       await loadNotes();
       return note;
     } catch (error) {
@@ -128,7 +139,9 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
 
   Future<void> updateNote(Note note) async {
     try {
-      print('Provider: Updating note ${note.id} with title: ${note.title}'); // Debug log
+      print(
+        'Provider: Updating note ${note.id} with title: ${note.title}',
+      ); // Debug log
       final updatedNote = note.copyWith(updatedAt: DateTime.now());
       await _repository.saveNote(updatedNote);
       await loadNotes();
@@ -141,7 +154,15 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
 
   Future<void> deleteNote(String noteId) async {
     try {
-      await _repository.deleteNote(noteId);
+      final note = await _repository.getNoteById(noteId);
+      if (note == null) throw Exception('Note not found');
+
+      final updatedNote = note.copyWith(
+        isDeleted: true,
+        updatedAt: DateTime.now(),
+      );
+
+      await _repository.saveNote(updatedNote);
       await loadNotes();
     } catch (error) {
       throw Exception('Failed to delete note: $error');
@@ -154,7 +175,7 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
       if (originalNote == null) throw Exception('Note not found');
 
       final content = await _repository.getNoteContent(noteId);
-      
+
       final duplicatedNote = Note(
         id: _uuid.v4(),
         title: '${originalNote.title} (Copy)',
@@ -165,7 +186,7 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
 
       await _repository.saveNote(duplicatedNote);
       await _repository.saveNoteContent(duplicatedNote.id, content);
-      
+
       await loadNotes();
       return duplicatedNote;
     } catch (error) {
@@ -189,6 +210,66 @@ class NotesNotifier extends StateNotifier<AsyncValue<List<Note>>> {
       throw Exception('Failed to toggle pin: $error');
     }
   }
+
+  Future<void> toggleArchive(String noteId) async {
+    try {
+      final note = await _repository.getNoteById(noteId);
+      if (note == null) throw Exception('Note not found');
+
+      final updatedNote = note.copyWith(
+        isArchived: !note.isArchived,
+        updatedAt: DateTime.now(),
+      );
+
+      await _repository.saveNote(updatedNote);
+      await loadNotes();
+    } catch (error) {
+      throw Exception('Failed to toggle archive: $error');
+    }
+  }
+
+  Future<void> restoreNote(String noteId) async {
+    try {
+      final note = await _repository.getNoteById(noteId);
+      if (note == null) throw Exception('Note not found');
+
+      final updatedNote = note.copyWith(
+        isDeleted: false,
+        updatedAt: DateTime.now(),
+      );
+
+      await _repository.saveNote(updatedNote);
+      await loadNotes();
+    } catch (error) {
+      throw Exception('Failed to restore note: $error');
+    }
+  }
+
+  Future<void> permanentlyDeleteNote(String noteId) async {
+    try {
+      await _repository.deleteNote(noteId);
+      await loadNotes();
+    } catch (error) {
+      throw Exception('Failed to permanently delete note: $error');
+    }
+  }
+
+  Future<void> updateNoteSortOrder(String noteId, int newOrder) async {
+    try {
+      final note = await _repository.getNoteById(noteId);
+      if (note == null) throw Exception('Note not found');
+
+      final updatedNote = note.copyWith(
+        sortOrder: newOrder,
+        updatedAt: DateTime.now(),
+      );
+
+      await _repository.saveNote(updatedNote);
+      await loadNotes();
+    } catch (error) {
+      throw Exception('Failed to update sort order: $error');
+    }
+  }
 }
 
 class NoteContentNotifier extends StateNotifier<AsyncValue<String>> {
@@ -197,7 +278,8 @@ class NoteContentNotifier extends StateNotifier<AsyncValue<String>> {
   Timer? _autosaveTimer;
   String _lastSavedContent = '';
 
-  NoteContentNotifier(this._repository, this._noteId) : super(const AsyncValue.loading()) {
+  NoteContentNotifier(this._repository, this._noteId)
+    : super(const AsyncValue.loading()) {
     loadContent();
   }
 
@@ -226,7 +308,7 @@ class NoteContentNotifier extends StateNotifier<AsyncValue<String>> {
 
   Future<void> _saveContent(String content) async {
     if (content == _lastSavedContent) return;
-    
+
     try {
       await _repository.saveNoteContent(_noteId, content);
       _lastSavedContent = content;
@@ -247,7 +329,7 @@ class NoteContentNotifier extends StateNotifier<AsyncValue<String>> {
 
       final content = state.value ?? '';
       await _repository.saveVersion(_noteId, note.nextVersionNumber, content);
-      
+
       // Update note with new version numbers
       final updatedNote = note.copyWith(
         currentVersion: note.nextVersionNumber,

@@ -2,28 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/notes_provider.dart';
-import '../widgets/enhanced_markdown_editor.dart';
+import '../widgets/markdown_editor.dart';
 import '../widgets/markdown_preview.dart';
 import 'version_history_screen.dart';
 
 enum EditorMode { edit, preview, split }
 
-class NoteEditorScreen extends ConsumerStatefulWidget {
+class SimpleNoteEditorScreen extends ConsumerStatefulWidget {
   final String noteId;
 
-  const NoteEditorScreen({super.key, required this.noteId});
+  const SimpleNoteEditorScreen({super.key, required this.noteId});
 
   @override
-  ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
+  ConsumerState<SimpleNoteEditorScreen> createState() =>
+      _SimpleNoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
+class _SimpleNoteEditorScreenState
+    extends ConsumerState<SimpleNoteEditorScreen> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
   EditorMode _currentMode = EditorMode.edit;
   bool _hasUnsavedChanges = false;
   bool _isInitialized = false;
-  bool _focusMode = false;
 
   @override
   void initState() {
@@ -43,17 +44,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   void _onTitleChanged() {
-    print('Title changed to: ${_titleController.text}'); // Debug log
     setState(() {
       _hasUnsavedChanges = true;
-    });
-
-    // Auto-save title changes after a delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && _hasUnsavedChanges) {
-        print('Auto-saving after title change'); // Debug log
-        _saveNote();
-      }
     });
   }
 
@@ -62,7 +54,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       _hasUnsavedChanges = true;
     });
 
-    // Update content provider for autosave
     ref
         .read(noteContentProvider(widget.noteId).notifier)
         .updateContent(_contentController.text);
@@ -82,89 +73,74 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
         return contentAsync.when(
           data: (content) {
-            // Initialize controllers only once
             if (!_isInitialized) {
               _titleController.text = note.title;
               _contentController.text = content;
               _isInitialized = true;
-              print('Initialized with title: ${note.title}'); // Debug log
             }
 
-            return PopScope(
-              canPop: !_hasUnsavedChanges,
-              onPopInvoked: (didPop) async {
-                if (!didPop && _hasUnsavedChanges) {
-                  final shouldPop = await _showUnsavedChangesDialog();
-                  if (shouldPop && mounted) {
-                    Navigator.of(context).pop();
-                  }
-                }
-              },
-              child: Scaffold(
-                appBar: AppBar(
-                  title: const Text('Edit Note'),
-                  actions: [
-                    IconButton(
-                      icon: Icon(_getModeIcon()),
-                      onPressed: _toggleMode,
-                      tooltip: 'Switch view mode',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.history),
-                      onPressed: () => _openVersionHistory(context),
-                      tooltip: 'Version history',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.save),
-                      onPressed: _saveVersion,
-                      tooltip: 'Save version',
-                    ),
-                  ],
-                ),
-                body: Column(
-                  children: [
-                    // Title input
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: TextField(
-                        controller: _titleController,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Note title...',
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) => _saveNote(),
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    // Content area
-                    Expanded(child: _buildContentArea()),
-                  ],
-                ),
-                bottomNavigationBar: _hasUnsavedChanges
-                    ? Container(
-                        padding: const EdgeInsets.all(8),
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, size: 16),
-                            const SizedBox(width: 8),
-                            const Text('Auto-saving...'),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: _saveNote,
-                              child: const Text('Save Now'),
-                            ),
-                          ],
-                        ),
-                      )
-                    : null,
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Edit Note'),
+                actions: [
+                  IconButton(
+                    icon: Icon(_getModeIcon()),
+                    onPressed: _toggleMode,
+                    tooltip: 'Switch view mode',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.history),
+                    onPressed: () => _openVersionHistory(context),
+                    tooltip: 'Version history',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.save),
+                    onPressed: _saveVersion,
+                    tooltip: 'Save version',
+                  ),
+                ],
               ),
+              body: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: TextField(
+                      controller: _titleController,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Note title...',
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _saveNote(),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(child: _buildContentArea()),
+                ],
+              ),
+              bottomNavigationBar: _hasUnsavedChanges
+                  ? Container(
+                      padding: const EdgeInsets.all(8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 16),
+                          const SizedBox(width: 8),
+                          const Text('Auto-saving...'),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _saveNote,
+                            child: const Text('Save Now'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : null,
             );
           },
           loading: () =>
@@ -271,14 +247,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ? 'Untitled Note'
           : _titleController.text.trim();
 
-      print('Saving note with title: $newTitle'); // Debug log
-
       final updatedNote = note.copyWith(
         title: newTitle,
         updatedAt: DateTime.now(),
       );
-
-      print('Updated note: ${updatedNote.title}'); // Debug log
 
       await ref.read(notesProvider.notifier).updateNote(updatedNote);
       await ref
@@ -295,7 +267,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ).showSnackBar(SnackBar(content: Text('Note saved: $newTitle')));
       }
     } catch (error) {
-      print('Error saving note: $error'); // Debug log
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -306,7 +277,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   Future<void> _saveVersion() async {
     try {
-      await _saveNote(); // Save current changes first
+      await _saveNote();
       await ref.read(noteContentProvider(widget.noteId).notifier).saveVersion();
 
       if (mounted) {
@@ -329,32 +300,5 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         builder: (context) => VersionHistoryScreen(noteId: widget.noteId),
       ),
     );
-  }
-
-  Future<bool> _showUnsavedChangesDialog() async {
-    final shouldPop = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved Changes'),
-        content: const Text(
-          'You have unsaved changes. Do you want to save before leaving?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Discard'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop(false);
-              await _saveNote();
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    return shouldPop ?? false;
   }
 }

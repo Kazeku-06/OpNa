@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 class NoteLinking {
   static final RegExp _linkPattern = RegExp(r'\[\[([^\]]+)\]\]');

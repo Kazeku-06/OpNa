@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../domain/entities/note.dart';
 import '../providers/notes_provider.dart';
-import '../screens/note_editor_screen.dart';
+import '../screens/simple_note_editor_screen.dart';
 
 enum NoteFilter { all, pinned, archived, deleted }
 
@@ -325,7 +325,7 @@ class _EnhancedNotesListState extends ConsumerState<EnhancedNotesList> {
   void _openNote(Note note) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => NoteEditorScreen(noteId: note.id),
+        builder: (context) => SimpleNoteEditorScreen(noteId: note.id),
       ),
     );
   }

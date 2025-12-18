@@ -5,8 +5,7 @@ import '../providers/notes_provider.dart';
 import '../widgets/enhanced_notes_list.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/sort_options.dart';
-import '../../templates/presentation/screens/template_selection_screen.dart';
-import 'note_editor_screen.dart';
+import '../../../templates/presentation/screens/template_selection_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +16,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  NoteFilter _currentFilter = NoteFilter.all;
 
   @override
   void dispose() {
@@ -57,7 +57,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           Expanded(
             child: searchResults.when(
-              data: (notes) => NotesList(notes: notes),
+              data: (notes) => EnhancedNotesList(
+                notes: notes,
+                currentFilter: _currentFilter,
+                onFilterChanged: (filter) {
+                  setState(() {
+                    _currentFilter = filter;
+                  });
+                },
+              ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Column(
@@ -85,24 +93,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _createNewNote() async {
-    try {
-      final notesNotifier = ref.read(notesProvider.notifier);
-      final note = await notesNotifier.createNote();
-
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => NoteEditorScreen(noteId: note.id),
-          ),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create note: $error')),
-        );
-      }
-    }
+    // Show template selection
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const TemplateSelectionScreen()),
+    );
   }
 
   void _showBackupOptions() {
